@@ -46,19 +46,19 @@ class DockerComposeToEasyPanelConverter:
     # Each database type has different environment variable names, so we need to map them correctly
     DB_ENV_VARS = {
         'mysql': {
-            'root_password': ['MYSQL_ROOT_PASSWORD', 'MARIADB_ROOT_PASSWORD'],  # Root user password
+            'rootPassword': ['MYSQL_ROOT_PASSWORD', 'MARIADB_ROOT_PASSWORD'],  # Root user password (camelCase for EasyPanel)
             'password': ['MYSQL_PASSWORD', 'MARIADB_PASSWORD'],                 # Regular user password
             'database': ['MYSQL_DATABASE', 'MARIADB_DATABASE'],                 # Database name
             'user': ['MYSQL_USER', 'MARIADB_USER']                              # Username
         },
         'postgresql': {
-            'root_password': ['POSTGRES_PASSWORD'],  # PostgreSQL only has one password field
+            'rootPassword': ['POSTGRES_PASSWORD'],  # PostgreSQL only has one password field
             'password': ['POSTGRES_PASSWORD'],       # Same as root password in PostgreSQL
             'database': ['POSTGRES_DB'],             # Database name
             'user': ['POSTGRES_USER']                # Username
         },
         'mongodb': {
-            'root_password': ['MONGO_ROOT_PASSWORD', 'MONGO_INITDB_ROOT_PASSWORD'],  # Admin password
+            'rootPassword': ['MONGO_ROOT_PASSWORD', 'MONGO_INITDB_ROOT_PASSWORD'],  # Admin password
             'password': ['MONGO_PASSWORD'],                                          # User password
             'database': ['MONGO_DATABASE', 'MONGO_INITDB_DATABASE'],                # Database name
             'user': ['MONGO_USER', 'MONGO_INITDB_ROOT_USERNAME']                     # Username
@@ -68,17 +68,66 @@ class DockerComposeToEasyPanelConverter:
         }
     }
     
-    def __init__(self, project_name: str = "my-project"):
+    def __init__(self, project_name: str = "my-project", use_placeholders: bool = False):
         """
         Initialize the converter with a project name.
         
         Args:
             project_name: The name that will be used for the EasyPanel project
+            use_placeholders: If True, use placeholder values instead of environment variable templates
         """
         self.project_name = project_name  # Store the project name for use in all services
+        self.use_placeholders = use_placeholders  # Whether to use placeholders for EasyPanel compatibility
         self.services = []                # List to store converted services
         self.networks = []                # List to store converted networks
         self.volumes = []                 # List to store converted volumes
+        
+    def _get_placeholder_value(self, field_name: str, env_var: str) -> str:
+        """
+        Generate placeholder values for EasyPanel compatibility.
+        
+        EasyPanel doesn't support environment variable templates in schema imports,
+        so we need to provide placeholder values that users can update after import.
+        
+        Args:
+            field_name: The database field name (rootPassword, password, etc.)
+            env_var: The original environment variable name
+            
+        Returns:
+            Placeholder value for the field
+        """
+        placeholders = {
+            'rootPassword': 'CHANGE_MYSQL_ROOT_PASSWORD',
+            'password': 'CHANGE_DB_PASSWORD', 
+            'database': 'pterodactyl',
+            'user': 'pterodactyl',
+            'REDIS_PASSWORD': 'CHANGE_REDIS_PASSWORD',
+            'WINGS_UUID': 'CHANGE_WINGS_UUID',
+            'WINGS_TOKEN': 'CHANGE_WINGS_TOKEN',
+            'WINGS_NODE_ID': '1',
+            'WINGS_REMOTE': 'http://panel:80',
+            'WINGS_USER': 'wings',
+            'WINGS_GROUP': 'wings',
+            'APP_ENV': 'production',
+            'APP_DEBUG': 'false',
+            'APP_URL': 'http://localhost',
+            'DB_HOST': 'mysql',
+            'DB_PORT': '3306',
+            'DB_DATABASE': 'pterodactyl',
+            'DB_USERNAME': 'pterodactyl',
+            'DB_PASSWORD': 'CHANGE_DB_PASSWORD',
+            'REDIS_HOST': 'redis',
+            'REDIS_PORT': '6379',
+            'MAIL_DRIVER': 'smtp',
+            'MAIL_USERNAME': 'CHANGE_EMAIL_USERNAME',
+            'MAIL_PASSWORD': 'CHANGE_EMAIL_PASSWORD',
+            'MAIL_HOST': 'smtp.gmail.com',
+            'MAIL_PORT': '587',
+            'MAIL_FROM_ADDRESS': 'noreply@yourdomain.com',
+            'MAIL_FROM_NAME': 'Pterodactyl Panel'
+        }
+        
+        return placeholders.get(field_name, f'CHANGE_{env_var}')
         
     def convert_file(self, compose_file: str, output_file: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -338,10 +387,29 @@ class DockerComposeToEasyPanelConverter:
         db_env_mapping = self.DB_ENV_VARS.get(db_type, {})
         for field, env_keys in db_env_mapping.items():
             # Try each possible environment variable name for this field
+            found_value = False
             for env_key in env_keys:
                 if env_key in env_vars:
-                    service_data[field] = env_vars[env_key]
+                    if self.use_placeholders:
+                        # Use placeholder value for EasyPanel compatibility
+                        # For Redis password, use the specific Redis placeholder
+                        if db_type == 'redis' and field == 'password':
+                            service_data[field] = self._get_placeholder_value('REDIS_PASSWORD', env_key)
+                        else:
+                            service_data[field] = self._get_placeholder_value(field, env_key)
+                    else:
+                        # Use the actual environment variable value
+                        service_data[field] = env_vars[env_key]
+                    found_value = True
                     break  # Found it, move to next field
+            
+            # If no environment variable found but we're using placeholders, provide a default
+            if not found_value and self.use_placeholders:
+                # For Redis password, use the REDIS_PASSWORD placeholder
+                if db_type == 'redis' and field == 'password':
+                    service_data[field] = self._get_placeholder_value('REDIS_PASSWORD', 'REDIS_PASSWORD')
+                else:
+                    service_data[field] = self._get_placeholder_value(field, env_keys[0] if env_keys else field)
         
         # Handle ports for database (usually for external access)
         ports = self._convert_ports(service_config.get('ports', []))
@@ -415,6 +483,7 @@ class DockerComposeToEasyPanelConverter:
         - List: ["KEY=value", "KEY2=value2"]
         
         This method converts both to a consistent dictionary format.
+        When use_placeholders is enabled, it replaces values with EasyPanel-compatible placeholders.
         
         Args:
             env_config: Environment configuration from Docker Compose
@@ -422,18 +491,24 @@ class DockerComposeToEasyPanelConverter:
         Returns:
             Dictionary of environment variables
         """
+        env_dict = {}
+        
         if isinstance(env_config, dict):
             # Already in dictionary format
-            return env_config
+            env_dict = env_config.copy()
         elif isinstance(env_config, list):
             # Convert list format to dictionary
-            env_dict = {}
             for item in env_config:
                 if '=' in item:
                     key, value = item.split('=', 1)  # Split on first '=' only
                     env_dict[key] = value
-            return env_dict
-        return {}  # Return empty dict for invalid formats
+        
+        # If using placeholders, replace values with placeholders
+        if self.use_placeholders:
+            for key, value in env_dict.items():
+                env_dict[key] = self._get_placeholder_value(key, key)
+        
+        return env_dict
     
     def _convert_volumes(self, volumes_config: List[Union[str, Dict[str, Any]]]) -> List[Dict[str, Any]]:
         """
@@ -456,12 +531,22 @@ class DockerComposeToEasyPanelConverter:
             if isinstance(volume, str):
                 # Handle string format
                 if ':' in volume:
-                    # Format: "host_path:container_path"
-                    host_path, container_path = volume.split(':', 1)
-                    converted_volumes.append({
-                        "hostPath": host_path,        # Path on the host machine
-                        "containerPath": container_path  # Path inside the container
-                    })
+                    # Format: "source:container_path" - could be host path or volume name
+                    source, container_path = volume.split(':', 1)
+                    
+                    # Check if source is a host path (starts with . / or ~) or absolute path
+                    if source.startswith(('./', '/', '~', '.\\', '\\')):
+                        # This is a bind mount (host path)
+                        converted_volumes.append({
+                            "hostPath": source,           # Path on the host machine
+                            "containerPath": container_path  # Path inside the container
+                        })
+                    else:
+                        # This is a named volume
+                        converted_volumes.append({
+                            "volumeName": source,         # Name of the Docker volume
+                            "containerPath": container_path  # Path inside the container
+                        })
                 else:
                     # Format: "volume_name" (named volume)
                     converted_volumes.append({
@@ -599,6 +684,12 @@ Examples:
         help='Validate the input Docker Compose file before conversion'
     )
     
+    parser.add_argument(
+        '--easypanel-compatible',
+        action='store_true',
+        help='Generate EasyPanel-compatible schema with placeholder values instead of environment variable templates'
+    )
+    
     # Parse the command-line arguments
     args = parser.parse_args()
     
@@ -612,8 +703,8 @@ Examples:
         args.output = 'schema.json'
     
     try:
-        # Create converter instance with the specified project name
-        converter = DockerComposeToEasyPanelConverter(args.project_name)
+        # Create converter instance with the specified project name and options
+        converter = DockerComposeToEasyPanelConverter(args.project_name, args.easypanel_compatible)
         
         # Convert the file
         schema = converter.convert_file(args.input, args.output)
