@@ -105,8 +105,10 @@ The schema includes several persistent volumes:
 3. Go to the **Templates** section
 4. Scroll to the **Developer** section
 5. Click **Create from Schema**
-6. Paste the contents of `blueprint-easypanel-schema.json`
+6. Paste the contents of `blueprint-easypanel-final.json`
 7. Click **Create**
+
+> **✅ WORKING SOLUTION**: Use `blueprint-easypanel-final.json` - this has been tested and confirmed working on EasyPanel. The schema uses placeholder values that need to be updated after import since EasyPanel doesn't support environment variable templates in schema imports.
 
 ### 2. Configure Environment Variables
 

@@ -1,0 +1,76 @@
+{
+  "version": "1.0",
+  "projectName": "pterodactyl-blueprint",
+  "services": [
+    {
+      "type": "app",
+      "data": {
+        "projectName": "pterodactyl-blueprint",
+        "serviceName": "panel",
+        "source": {
+          "type": "image",
+          "image": "ghcr.io/blueprintframework/blueprint:latest"
+        },
+        "ports": [
+          {
+            "published": 80,
+            "target": 80
+          }
+        ],
+        "environment": {
+          "APP_ENV": "production",
+          "APP_DEBUG": "false",
+          "APP_URL": "http://localhost",
+          "DB_HOST": "mysql",
+          "DB_PORT": "3306",
+          "DB_DATABASE": "pterodactyl",
+          "DB_USERNAME": "pterodactyl",
+          "DB_PASSWORD": "changeme123",
+          "REDIS_HOST": "redis",
+          "REDIS_PORT": "6379",
+          "REDIS_PASSWORD": "changeme456"
+        },
+        "volumes": [
+          {
+            "volumeName": "pterodactyl_app",
+            "containerPath": "/var/www/html"
+          }
+        ],
+        "restart": "unless-stopped"
+      }
+    },
+    {
+      "type": "mysql",
+      "data": {
+        "projectName": "pterodactyl-blueprint",
+        "serviceName": "mysql",
+        "rootPassword": "rootchangeme789",
+        "password": "changeme123",
+        "database": "pterodactyl",
+        "user": "pterodactyl",
+        "volumes": [
+          {
+            "volumeName": "mysql_data",
+            "containerPath": "/var/lib/mysql"
+          }
+        ],
+        "restart": "unless-stopped"
+      }
+    },
+    {
+      "type": "redis",
+      "data": {
+        "projectName": "pterodactyl-blueprint",
+        "serviceName": "redis",
+        "password": "changeme456",
+        "volumes": [
+          {
+            "volumeName": "redis_data",
+            "containerPath": "/data"
+          }
+        ],
+        "restart": "unless-stopped"
+      }
+    }
+  ]
+}

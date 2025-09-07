@@ -1,0 +1,139 @@
+[
+  {
+    "type": "app",
+    "data": {
+      "projectName": "pterodactyl-blueprint",
+      "serviceName": "panel",
+      "source": {
+        "type": "image",
+        "image": "ghcr.io/blueprintframework/blueprint:latest"
+      },
+      "ports": [
+        {
+          "published": 80,
+          "target": 80
+        },
+        {
+          "published": 443,
+          "target": 443
+        }
+      ],
+      "environment": {
+        "APP_ENV": "production",
+        "APP_DEBUG": "false",
+        "APP_URL": "${APP_URL:-http://localhost}",
+        "DB_HOST": "mysql",
+        "DB_PORT": "3306",
+        "DB_DATABASE": "${DB_DATABASE:-pterodactyl}",
+        "DB_USERNAME": "${DB_USERNAME:-pterodactyl}",
+        "DB_PASSWORD": "${DB_PASSWORD}",
+        "REDIS_HOST": "redis",
+        "REDIS_PORT": "6379",
+        "REDIS_PASSWORD": "${REDIS_PASSWORD}",
+        "MAIL_DRIVER": "smtp",
+        "MAIL_HOST": "${MAIL_HOST}",
+        "MAIL_PORT": "${MAIL_PORT:-587}",
+        "MAIL_USERNAME": "${MAIL_USERNAME}",
+        "MAIL_PASSWORD": "${MAIL_PASSWORD}",
+        "MAIL_FROM_ADDRESS": "${MAIL_FROM_ADDRESS}",
+        "MAIL_FROM_NAME": "${MAIL_FROM_NAME}"
+      },
+      "mounts": [
+        {
+          "type": "volume",
+          "name": "pterodactyl_app",
+          "mountPath": "/var/www/html"
+        },
+        {
+          "type": "volume",
+          "name": "extensions",
+          "mountPath": "/var/www/html/extensions"
+        }
+      ],
+      "restart": "unless-stopped",
+      "dependsOn": [
+        "mysql",
+        "redis"
+      ]
+    }
+  },
+  {
+    "type": "mysql",
+    "data": {
+      "projectName": "pterodactyl-blueprint",
+      "serviceName": "mysql",
+      "password": "${DB_PASSWORD}",
+      "rootPassword": "${MYSQL_ROOT_PASSWORD}",
+      "database": "${DB_DATABASE:-pterodactyl}",
+      "username": "${DB_USERNAME:-pterodactyl}",
+      "mounts": [
+        {
+          "type": "volume",
+          "name": "mysql_data",
+          "mountPath": "/var/lib/mysql"
+        }
+      ]
+    }
+  },
+  {
+    "type": "redis",
+    "data": {
+      "projectName": "pterodactyl-blueprint",
+      "serviceName": "redis",
+      "password": "${REDIS_PASSWORD}",
+      "mounts": [
+        {
+          "type": "volume",
+          "name": "redis_data",
+          "mountPath": "/data"
+        }
+      ]
+    }
+  },
+  {
+    "type": "app",
+    "data": {
+      "projectName": "pterodactyl-blueprint",
+      "serviceName": "wings",
+      "source": {
+        "type": "image",
+        "image": "ghcr.io/pterodactyl/wings:latest"
+      },
+      "ports": [
+        {
+          "published": 8080,
+          "target": 8080
+        }
+      ],
+      "environment": {
+        "WINGS_UUID": "${WINGS_UUID}",
+        "WINGS_TOKEN": "${WINGS_TOKEN}",
+        "WINGS_NODE_ID": "${WINGS_NODE_ID}",
+        "WINGS_REMOTE": "${WINGS_REMOTE:-http://panel:80}",
+        "WINGS_USER": "wings",
+        "WINGS_GROUP": "wings"
+      },
+      "mounts": [
+        {
+          "type": "bind",
+          "hostPath": "/var/run/docker.sock",
+          "mountPath": "/var/run/docker.sock"
+        },
+        {
+          "type": "volume",
+          "name": "wings_data",
+          "mountPath": "/var/lib/pterodactyl"
+        },
+        {
+          "type": "volume",
+          "name": "wings_logs",
+          "mountPath": "/var/log/pterodactyl"
+        }
+      ],
+      "restart": "unless-stopped",
+      "dependsOn": [
+        "panel"
+      ]
+    }
+  }
+]

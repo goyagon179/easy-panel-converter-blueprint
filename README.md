@@ -217,6 +217,17 @@ Check the `examples/` directory for sample Docker Compose files:
 - `simple-app.yml`: Basic web application with database
 - `complex-stack.yml`: Multi-service application with monitoring
 
+## EasyPanel Integration
+
+✅ **Working EasyPanel Schema**: `blueprint-easypanel-final.json`
+
+This project includes a **tested and working** EasyPanel schema for the Blueprint Framework (Pterodactyl Panel with extensions). The schema has been validated and successfully imports into EasyPanel.
+
+**Quick Start**:
+1. Use `blueprint-easypanel-final.json` in EasyPanel's "Create from Schema" feature
+2. Update the placeholder values after import
+3. Deploy in order: MySQL → Redis → Panel → Wings
+
 ## Contributing
 
 1. Fork the repository

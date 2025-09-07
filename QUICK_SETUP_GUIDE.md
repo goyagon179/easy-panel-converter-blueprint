@@ -16,30 +16,46 @@ This guide will help you deploy the Blueprint Framework (Pterodactyl Panel with 
 
 ### 1. Import the Schema
 
-1. **Download the schema file**: `blueprint-easypanel-schema-simple.json`
+1. **Use the working schema file**: `blueprint-easypanel-final.json`
 2. **Access EasyPanel**: Go to your EasyPanel dashboard
 3. **Create new project**: Click "New Project"
 4. **Import schema**: 
    - Go to Templates → Developer
    - Click "Create from Schema"
-   - Paste the contents of `blueprint-easypanel-schema-simple.json`
+   - Paste the contents of `blueprint-easypanel-final.json`
    - Click "Create"
 
-### 2. Configure Environment Variables
+> **Note**: This schema uses placeholder values that you'll need to update after import. EasyPanel doesn't support environment variable templates in schema imports.
 
-Before starting the services, you need to set these environment variables:
+### 2. Update Placeholder Values
 
-#### Required Variables:
+After importing the schema, you need to update the placeholder values in each service:
+
+#### Panel Service Environment Variables:
 ```bash
-# Database passwords (change these!)
 DB_PASSWORD=your_secure_database_password
-MYSQL_ROOT_PASSWORD=your_secure_root_password
 REDIS_PASSWORD=your_secure_redis_password
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_email_app_password
+MAIL_FROM_ADDRESS=noreply@yourdomain.com
+```
 
-# Wings configuration (get these from Pterodactyl Panel)
-WINGS_UUID=your_wings_uuid_here
-WINGS_TOKEN=your_wings_token_here
-WINGS_NODE_ID=1
+#### MySQL Service Configuration:
+```bash
+rootPassword=your_secure_mysql_root_password
+password=your_secure_database_password  # Same as DB_PASSWORD above
+```
+
+#### Redis Service Configuration:
+```bash
+password=your_secure_redis_password  # Same as REDIS_PASSWORD above
+```
+
+#### Wings Service Configuration:
+```bash
+WINGS_UUID=your_wings_uuid_from_pterodactyl
+WINGS_TOKEN=your_wings_token_from_pterodactyl
+# WINGS_NODE_ID is already set to "1"
 ```
 
 #### Optional Variables:

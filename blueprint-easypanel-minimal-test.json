@@ -1,0 +1,21 @@
+{
+  "type": "app",
+  "data": {
+    "projectName": "test-blueprint",
+    "serviceName": "panel",
+    "source": {
+      "type": "image",
+      "image": "ghcr.io/blueprintframework/blueprint:latest"
+    },
+    "ports": [
+      {
+        "published": 80,
+        "target": 80
+      }
+    ],
+    "environment": {
+      "APP_ENV": "production",
+      "APP_DEBUG": "false"
+    }
+  }
+}

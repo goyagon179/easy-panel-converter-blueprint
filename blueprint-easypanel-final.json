@@ -1,0 +1,175 @@
+{
+  "version": "1.0",
+  "projectName": "pterodactyl-blueprint",
+  "services": [
+    {
+      "type": "app",
+      "data": {
+        "projectName": "pterodactyl-blueprint",
+        "serviceName": "panel",
+        "source": {
+          "type": "image",
+          "image": "ghcr.io/blueprintframework/blueprint:latest"
+        },
+        "ports": [
+          {
+            "published": 80,
+            "target": 80
+          },
+          {
+            "published": 443,
+            "target": 443
+          }
+        ],
+        "environment": {
+          "APP_ENV": "production",
+          "APP_DEBUG": "false",
+          "APP_URL": "http://localhost",
+          "DB_HOST": "mysql",
+          "DB_PORT": "3306", 
+          "DB_DATABASE": "pterodactyl",
+          "DB_USERNAME": "pterodactyl",
+          "DB_PASSWORD": "CHANGE_DB_PASSWORD",
+          "REDIS_HOST": "redis",
+          "REDIS_PORT": "6379",
+          "REDIS_PASSWORD": "CHANGE_REDIS_PASSWORD",
+          "MAIL_DRIVER": "smtp",
+          "MAIL_HOST": "smtp.gmail.com",
+          "MAIL_PORT": "587",
+          "MAIL_USERNAME": "CHANGE_EMAIL_USERNAME",
+          "MAIL_PASSWORD": "CHANGE_EMAIL_PASSWORD",
+          "MAIL_FROM_ADDRESS": "noreply@yourdomain.com",
+          "MAIL_FROM_NAME": "Pterodactyl Panel"
+        },
+        "volumes": [
+          {
+            "volumeName": "pterodactyl_app",
+            "containerPath": "/var/www/html"
+          },
+          {
+            "volumeName": "extensions",
+            "containerPath": "/var/www/html/extensions"
+          }
+        ],
+        "restart": "unless-stopped"
+      }
+    },
+    {
+      "type": "mysql",
+      "data": {
+        "projectName": "pterodactyl-blueprint",
+        "serviceName": "mysql",
+        "rootPassword": "CHANGE_MYSQL_ROOT_PASSWORD",
+        "password": "CHANGE_DB_PASSWORD",
+        "database": "pterodactyl",
+        "user": "pterodactyl",
+        "volumes": [
+          {
+            "volumeName": "mysql_data",
+            "containerPath": "/var/lib/mysql"
+          }
+        ],
+        "restart": "unless-stopped"
+      }
+    },
+    {
+      "type": "redis",
+      "data": {
+        "projectName": "pterodactyl-blueprint",
+        "serviceName": "redis",
+        "password": "CHANGE_REDIS_PASSWORD",
+        "volumes": [
+          {
+            "volumeName": "redis_data",
+            "containerPath": "/data"
+          }
+        ],
+        "restart": "unless-stopped"
+      }
+    },
+    {
+      "type": "app",
+      "data": {
+        "projectName": "pterodactyl-blueprint",
+        "serviceName": "wings",
+        "source": {
+          "type": "image",
+          "image": "ghcr.io/pterodactyl/wings:latest"
+        },
+        "ports": [
+          {
+            "published": 8080,
+            "target": 8080
+          }
+        ],
+        "environment": {
+          "WINGS_UUID": "CHANGE_WINGS_UUID",
+          "WINGS_TOKEN": "CHANGE_WINGS_TOKEN",
+          "WINGS_NODE_ID": "1",
+          "WINGS_REMOTE": "http://panel:80",
+          "WINGS_USER": "wings",
+          "WINGS_GROUP": "wings"
+        },
+        "volumes": [
+          {
+            "hostPath": "/var/run/docker.sock",
+            "containerPath": "/var/run/docker.sock"
+          },
+          {
+            "volumeName": "wings_data",
+            "containerPath": "/var/lib/pterodactyl"
+          },
+          {
+            "volumeName": "wings_logs",
+            "containerPath": "/var/log/pterodactyl"
+          }
+        ],
+        "restart": "unless-stopped"
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "type": "volume",
+      "data": {
+        "name": "pterodactyl_app",
+        "driver": "local"
+      }
+    },
+    {
+      "type": "volume",
+      "data": {
+        "name": "mysql_data", 
+        "driver": "local"
+      }
+    },
+    {
+      "type": "volume",
+      "data": {
+        "name": "redis_data",
+        "driver": "local"
+      }
+    },
+    {
+      "type": "volume",
+      "data": {
+        "name": "wings_data",
+        "driver": "local"
+      }
+    },
+    {
+      "type": "volume",
+      "data": {
+        "name": "wings_logs",
+        "driver": "local"
+      }
+    },
+    {
+      "type": "volume",
+      "data": {
+        "name": "extensions",
+        "driver": "local"
+      }
+    }
+  ]
+}
