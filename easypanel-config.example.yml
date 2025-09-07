@@ -1,0 +1,140 @@
+# EasyPanel CI/CD Configuration Example
+# Copy this to easypanel-config.yml and customize for your project
+
+# EasyPanel API Configuration
+easypanel:
+  api_url: "https://your-easypanel-instance.com"
+  # API token should be set as environment variable: EASYPANEL_API_TOKEN
+  
+  # Project Configuration
+  projects:
+    staging:
+      id: "your-staging-project-id"
+      url: "https://staging.yourdomain.com"
+      auto_deploy: true
+    production:
+      id: "your-production-project-id" 
+      url: "https://yourdomain.com"
+      auto_deploy: false  # Requires manual approval
+
+# Environment-specific configurations
+environments:
+  staging:
+    environment_variables:
+      APP_ENV: "staging"
+      APP_DEBUG: "true"
+      LOG_LEVEL: "debug"
+      # Database configurations for staging
+      DB_HOST: "staging-mysql"
+      REDIS_HOST: "staging-redis"
+    
+    # Resource limits for staging (lower than production)
+    resources:
+      limits:
+        cpu: "0.5"
+        memory: "512Mi"
+    
+    # Health check configuration
+    health_checks:
+      enabled: true
+      timeout: 30
+      retries: 3
+      endpoints:
+        - "/health"
+        - "/api/health"
+
+  production:
+    environment_variables:
+      APP_ENV: "production"
+      APP_DEBUG: "false"
+      LOG_LEVEL: "warning"
+      # Production database configurations
+      DB_HOST: "production-mysql"
+      REDIS_HOST: "production-redis"
+    
+    # Resource limits for production
+    resources:
+      limits:
+        cpu: "2.0"
+        memory: "2Gi"
+      reservations:
+        cpu: "1.0"
+        memory: "1Gi"
+    
+    # Production health checks
+    health_checks:
+      enabled: true
+      timeout: 10
+      retries: 5
+      endpoints:
+        - "/health"
+        - "/api/health"
+        - "/api/status"
+
+# Conversion settings
+conversion:
+  # Which converter to use
+  converter: "advanced"  # or "basic"
+  
+  # Converter options
+  options:
+    include_networks: true
+    include_volumes: true
+    environment_substitution: true
+    custom_service_types:
+      # Map specific services to types
+      "my-nginx": "nginx"
+      "my-db": "mysql"
+
+# Notification settings
+notifications:
+  slack:
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#deployments"
+    enabled: true
+  
+  discord:
+    webhook_url: "${DISCORD_WEBHOOK_URL}"
+    enabled: false
+  
+  email:
+    smtp_host: "${SMTP_HOST}"
+    smtp_port: 587
+    username: "${SMTP_USERNAME}"
+    password: "${SMTP_PASSWORD}"
+    from: "deployments@yourdomain.com"
+    to: ["admin@yourdomain.com"]
+    enabled: false
+
+# Security settings
+security:
+  # Environment variables that should never be logged
+  sensitive_vars:
+    - "*PASSWORD*"
+    - "*TOKEN*"
+    - "*SECRET*"
+    - "*KEY*"
+  
+  # Require approval for production deployments
+  production_approval: true
+  
+  # Allowed branches for automatic deployment
+  allowed_branches:
+    staging: ["main", "develop", "staging"]
+    production: ["main", "master"]
+
+# Backup settings (optional)
+backup:
+  enabled: true
+  before_deployment: true
+  retention_days: 30
+  volumes_to_backup:
+    - "mysql_data"
+    - "postgres_data"
+    - "app_data"
+
+# Rollback settings
+rollback:
+  enabled: true
+  keep_previous_versions: 3
+  automatic_on_failure: true
